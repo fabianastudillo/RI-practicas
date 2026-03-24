@@ -58,6 +58,43 @@ Parámetros clave en `rfid_epcgen2_basic_demod.grc`:
 - `LPF Cutoff (Hz)`: ancho del filtro para extraer envolvente de backscatter.
 - `Threshold`: umbral del detector para convertir señal a bits.
 - `decim` y `smooth_len`: controlan resolución temporal y suavizado.
+- `Env Gain`: amplifica la envolvente para ver mejor el pulso en el panel temporal.
+
+Tip práctico para detectar ráfagas (bursts):
+
+- Usa el **Waterfall Sink** como referencia principal (el FFT muestra solo el instante actual).
+- Con `center_freq = 13.5e6`, acerca el tag al RC522 y observa marcas alrededor de:
+	- `12.7e6` y
+	- `14.4e6`
+- Esas líneas corresponden aproximadamente a portadora ± `847.5 kHz`.
+
+Modo didáctico (recomendado en clase):
+
+- Usa `center_freq = 13.5e6`.
+- Deja `samp_rate = 2e6` y `bandwidth = 2e6`.
+- Ajusta primero `Env Gain` hasta que el pulso destaque visualmente.
+- Luego mueve `Threshold` hasta que la traza de **Bits** conmute limpio entre 0 y 1.
+- Si hay mucho ruido, baja `LPF Cutoff` y/o sube `smooth_len`.
+
+Preset clase (rápido) para `rfid_hackrf_capture.grc`:
+
+- `center_freq = 13.5e6`
+- `samp_rate = 2e6`
+- `bandwidth = 2e6`
+- `rf_gain = 20`
+- `if_gain = 24`
+- `bb_gain = 20`
+- `LPF Cutoff = 120e3`
+- `Env Gain = 40`
+- `Threshold = 0.35`
+- `decim = 10`
+- `smooth_len = 16`
+
+Secuencia sugerida para mostrar en vivo:
+
+1. Primero enseña `RFID Burst Waterfall` para ubicar actividad temporal.
+2. Luego cambia a `Pulse Viewer` para ver el pulso limpio.
+3. Por último, muestra `Bitstream Viewer` para explicar la conmutación 0/1.
 
 ### Opción B: Script Python
 

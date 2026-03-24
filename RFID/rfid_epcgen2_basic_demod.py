@@ -80,23 +80,24 @@ class rfid_epcgen2_basic_demod(gr.top_block, Qt.QWidget):
         ##################################################
         # Variables
         ##################################################
-        self.threshold_level = threshold_level = 0.01
-        self.smooth_len = smooth_len = 32
-        self.samp_rate = samp_rate = 10e6
+        self.threshold_level = threshold_level = 0.35
+        self.smooth_len = smooth_len = 16
+        self.samp_rate = samp_rate = 2e6
         self.rf_gain = rf_gain = 16
         self.ppm = ppm = 0
         self.lpf_transition = lpf_transition = 80e3
         self.lpf_cutoff = lpf_cutoff = 200e3
         self.if_gain = if_gain = 24
-        self.decim = decim = 20
-        self.center_freq = center_freq = 915e6
+        self.env_gain = env_gain = 40.0
+        self.decim = decim = 10
+        self.center_freq = center_freq = 13.5e6
         self.bb_gain = bb_gain = 20
-        self.bandwidth = bandwidth = 10e6
+        self.bandwidth = bandwidth = 2e6
 
         ##################################################
         # Blocks
         ##################################################
-        self._threshold_level_range = Range(0.0001, 0.1, 0.0005, 0.01, 200)
+        self._threshold_level_range = Range(0.01, 2.0, 0.01, 0.35, 200)
         self._threshold_level_win = RangeWidget(self._threshold_level_range, self.set_threshold_level, "Threshold", "counter_slider", float, QtCore.Qt.Horizontal)
         self.top_grid_layout.addWidget(self._threshold_level_win, 2, 2, 1, 2)
         for r in range(2, 3):
@@ -124,7 +125,14 @@ class rfid_epcgen2_basic_demod(gr.top_block, Qt.QWidget):
             self.top_grid_layout.setRowStretch(r, 1)
         for c in range(0, 2):
             self.top_grid_layout.setColumnStretch(c, 1)
-        self._center_freq_range = Range(860e6, 960e6, 1e5, 915e6, 200)
+        self._env_gain_range = Range(1.0, 200.0, 1.0, 40.0, 200)
+        self._env_gain_win = RangeWidget(self._env_gain_range, self.set_env_gain, "Env Gain", "counter_slider", float, QtCore.Qt.Horizontal)
+        self.top_grid_layout.addWidget(self._env_gain_win, 3, 0, 1, 2)
+        for r in range(3, 4):
+            self.top_grid_layout.setRowStretch(r, 1)
+        for c in range(0, 2):
+            self.top_grid_layout.setColumnStretch(c, 1)
+        self._center_freq_range = Range(10e6, 960e6, 1e5, 13.5e6, 200)
         self._center_freq_win = RangeWidget(self._center_freq_range, self.set_center_freq, "Center Freq (Hz)", "counter_slider", float, QtCore.Qt.Horizontal)
         self.top_grid_layout.addWidget(self._center_freq_win, 0, 0, 1, 2)
         for r in range(0, 1):
@@ -143,7 +151,7 @@ class rfid_epcgen2_basic_demod(gr.top_block, Qt.QWidget):
             window.WIN_BLACKMAN_hARRIS, #wintype
             center_freq, #fc
             samp_rate, #bw
-            "", #name
+            "RFID Burst Waterfall", #name
             1, #number of inputs
             None # parent
         )
@@ -172,43 +180,43 @@ class rfid_epcgen2_basic_demod(gr.top_block, Qt.QWidget):
 
         self._qtgui_waterfall_sink_x_0_win = sip.wrapinstance(self.qtgui_waterfall_sink_x_0.qwidget(), Qt.QWidget)
 
-        self.top_grid_layout.addWidget(self._qtgui_waterfall_sink_x_0_win, 4, 0, 1, 2)
-        for r in range(4, 5):
+        self.top_grid_layout.addWidget(self._qtgui_waterfall_sink_x_0_win, 5, 0, 1, 2)
+        for r in range(5, 6):
             self.top_grid_layout.setRowStretch(r, 1)
         for c in range(0, 2):
             self.top_grid_layout.setColumnStretch(c, 1)
         self.qtgui_time_sink_x_0 = qtgui.time_sink_f(
-            4096, #size
+            8192, #size
             samp_rate/decim, #samp_rate
-            "EPC Gen2 Basic Demod", #name
+            "Pulsos Didácticos EPC Gen2", #name
             2, #number of inputs
             None # parent
         )
-        self.qtgui_time_sink_x_0.set_update_time(0.05)
-        self.qtgui_time_sink_x_0.set_y_axis(-0.2, 1.2)
+        self.qtgui_time_sink_x_0.set_update_time(0.02)
+        self.qtgui_time_sink_x_0.set_y_axis(-0.2, 1.5)
 
         self.qtgui_time_sink_x_0.set_y_label('Amplitude', "")
 
         self.qtgui_time_sink_x_0.enable_tags(False)
         self.qtgui_time_sink_x_0.set_trigger_mode(qtgui.TRIG_MODE_FREE, qtgui.TRIG_SLOPE_POS, 0.0, 0, 0, "")
-        self.qtgui_time_sink_x_0.enable_autoscale(False)
+        self.qtgui_time_sink_x_0.enable_autoscale(True)
         self.qtgui_time_sink_x_0.enable_grid(True)
         self.qtgui_time_sink_x_0.enable_axis_labels(True)
         self.qtgui_time_sink_x_0.enable_control_panel(True)
         self.qtgui_time_sink_x_0.enable_stem_plot(False)
 
 
-        labels = ['Envelope', 'Bits', '', '', '',
+        labels = ['Envelope x Gain', 'Bits', '', '', '',
             '', '', '', '', '']
-        widths = [1, 2, 1, 1, 1,
+        widths = [1, 3, 1, 1, 1,
             1, 1, 1, 1, 1]
         colors = ['blue', 'red', 'green', 'black', 'cyan',
             'magenta', 'yellow', 'dark red', 'dark green', 'dark blue']
         alphas = [1.0, 1.0, 1.0, 1.0, 1.0,
             1.0, 1.0, 1.0, 1.0, 1.0]
-        styles = [1, 1, 1, 1, 1,
+        styles = [1, 2, 1, 1, 1,
             1, 1, 1, 1, 1]
-        markers = [-1, -1, -1, -1, -1,
+        markers = [-1, 1, -1, -1, -1,
             -1, -1, -1, -1, -1]
 
 
@@ -224,8 +232,8 @@ class rfid_epcgen2_basic_demod(gr.top_block, Qt.QWidget):
             self.qtgui_time_sink_x_0.set_line_alpha(i, alphas[i])
 
         self._qtgui_time_sink_x_0_win = sip.wrapinstance(self.qtgui_time_sink_x_0.qwidget(), Qt.QWidget)
-        self.top_grid_layout.addWidget(self._qtgui_time_sink_x_0_win, 3, 2, 2, 2)
-        for r in range(3, 5):
+        self.top_grid_layout.addWidget(self._qtgui_time_sink_x_0_win, 4, 2, 2, 2)
+        for r in range(4, 6):
             self.top_grid_layout.setRowStretch(r, 1)
         for c in range(2, 4):
             self.top_grid_layout.setColumnStretch(c, 1)
@@ -240,7 +248,7 @@ class rfid_epcgen2_basic_demod(gr.top_block, Qt.QWidget):
         )
         self.qtgui_freq_sink_x_0.set_update_time(0.10)
         self.qtgui_freq_sink_x_0.set_y_axis(-130, 10)
-        self.qtgui_freq_sink_x_0.set_y_label('UHF Spectrum', 'dB')
+        self.qtgui_freq_sink_x_0.set_y_label('RFID Spectrum', 'dB')
         self.qtgui_freq_sink_x_0.set_trigger_mode(qtgui.TRIG_MODE_FREE, 0.0, 0, "")
         self.qtgui_freq_sink_x_0.enable_autoscale(False)
         self.qtgui_freq_sink_x_0.enable_grid(True)
@@ -270,8 +278,8 @@ class rfid_epcgen2_basic_demod(gr.top_block, Qt.QWidget):
             self.qtgui_freq_sink_x_0.set_line_alpha(i, alphas[i])
 
         self._qtgui_freq_sink_x_0_win = sip.wrapinstance(self.qtgui_freq_sink_x_0.qwidget(), Qt.QWidget)
-        self.top_grid_layout.addWidget(self._qtgui_freq_sink_x_0_win, 3, 0, 1, 2)
-        for r in range(3, 4):
+        self.top_grid_layout.addWidget(self._qtgui_freq_sink_x_0_win, 4, 0, 1, 2)
+        for r in range(4, 5):
             self.top_grid_layout.setRowStretch(r, 1)
         for c in range(0, 2):
             self.top_grid_layout.setColumnStretch(c, 1)
@@ -293,6 +301,7 @@ class rfid_epcgen2_basic_demod(gr.top_block, Qt.QWidget):
         self.fir_filter_xxx_0.declare_sample_delay(0)
         self.digital_binary_slicer_fb_0 = digital.binary_slicer_fb()
         self.blocks_threshold_ff_0 = blocks.threshold_ff(threshold_level, threshold_level*1.20, 0)
+        self.blocks_multiply_const_vxx_0 = blocks.multiply_const_ff(env_gain)
         self.blocks_moving_average_xx_0 = blocks.moving_average_ff(smooth_len, 1.0/smooth_len, 4096, 1)
         self.blocks_complex_to_mag_squared_0 = blocks.complex_to_mag_squared(1)
         self.blocks_char_to_float_0 = blocks.char_to_float(1, 1)
@@ -303,8 +312,9 @@ class rfid_epcgen2_basic_demod(gr.top_block, Qt.QWidget):
         ##################################################
         self.connect((self.blocks_char_to_float_0, 0), (self.qtgui_time_sink_x_0, 1))
         self.connect((self.blocks_complex_to_mag_squared_0, 0), (self.fir_filter_xxx_0, 0))
-        self.connect((self.blocks_moving_average_xx_0, 0), (self.blocks_threshold_ff_0, 0))
-        self.connect((self.blocks_moving_average_xx_0, 0), (self.qtgui_time_sink_x_0, 0))
+        self.connect((self.blocks_moving_average_xx_0, 0), (self.blocks_multiply_const_vxx_0, 0))
+        self.connect((self.blocks_multiply_const_vxx_0, 0), (self.blocks_threshold_ff_0, 0))
+        self.connect((self.blocks_multiply_const_vxx_0, 0), (self.qtgui_time_sink_x_0, 0))
         self.connect((self.blocks_threshold_ff_0, 0), (self.digital_binary_slicer_fb_0, 0))
         self.connect((self.digital_binary_slicer_fb_0, 0), (self.blocks_char_to_float_0, 0))
         self.connect((self.fir_filter_xxx_0, 0), (self.blocks_moving_average_xx_0, 0))
@@ -381,6 +391,13 @@ class rfid_epcgen2_basic_demod(gr.top_block, Qt.QWidget):
     def set_if_gain(self, if_gain):
         self.if_gain = if_gain
         self.osmosdr_source_0.set_if_gain(self.if_gain, 0)
+
+    def get_env_gain(self):
+        return self.env_gain
+
+    def set_env_gain(self, env_gain):
+        self.env_gain = env_gain
+        self.blocks_multiply_const_vxx_0.set_k(self.env_gain)
 
     def get_decim(self):
         return self.decim

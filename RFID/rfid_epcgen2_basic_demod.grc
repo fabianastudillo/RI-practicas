@@ -36,7 +36,7 @@ blocks:
   id: variable
   parameters:
     comment: ''
-    value: 10e6
+    value: 2e6
   states:
     bus_sink: false
     bus_source: false
@@ -49,7 +49,7 @@ blocks:
   id: variable
   parameters:
     comment: ''
-    value: 20
+    value: 10
   states:
     bus_sink: false
     bus_source: false
@@ -75,7 +75,7 @@ blocks:
   id: variable
   parameters:
     comment: ''
-    value: 32
+    value: 16
   states:
     bus_sink: false
     bus_source: false
@@ -93,10 +93,10 @@ blocks:
     min_len: '200'
     orient: QtCore.Qt.Horizontal
     rangeType: float
-    start: '860e6'
+    start: '10e6'
     step: '1e5'
     stop: '960e6'
-    value: '915e6'
+    value: '13.5e6'
     widget: counter_slider
   states:
     bus_sink: false
@@ -203,10 +203,10 @@ blocks:
     min_len: '200'
     orient: QtCore.Qt.Horizontal
     rangeType: float
-    start: '0.0001'
-    step: '0.0005'
-    stop: '0.1'
-    value: '0.01'
+    start: '0.01'
+    step: '0.01'
+    stop: '2.0'
+    value: '0.35'
     widget: counter_slider
   states:
     bus_sink: false
@@ -216,11 +216,33 @@ blocks:
     rotation: 0
     state: enabled
 
+- name: env_gain
+  id: variable_qtgui_range
+  parameters:
+    comment: ''
+    gui_hint: 3,0,1,2
+    label: Env Gain
+    min_len: '200'
+    orient: QtCore.Qt.Horizontal
+    rangeType: float
+    start: '1.0'
+    step: '1.0'
+    stop: '200.0'
+    value: '40.0'
+    widget: counter_slider
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [256, 448]
+    rotation: 0
+    state: enabled
+
 - name: bandwidth
   id: variable
   parameters:
     comment: ''
-    value: 10e6
+    value: 2e6
   states:
     bus_sink: false
     bus_source: false
@@ -332,6 +354,25 @@ blocks:
     rotation: 0
     state: enabled
 
+- name: blocks_multiply_const_vxx_0
+  id: blocks_multiply_const_vxx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    const: env_gain
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1344, 616]
+    rotation: 0
+    state: enabled
+
 - name: blocks_threshold_ff_0
   id: blocks_threshold_ff
   parameters:
@@ -347,7 +388,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1456, 616]
+    coordinate: [1568, 616]
     rotation: 0
     state: enabled
 
@@ -363,7 +404,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1680, 616]
+    coordinate: [1792, 616]
     rotation: 0
     state: enabled
 
@@ -381,7 +422,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1904, 616]
+    coordinate: [2016, 616]
     rotation: 0
     state: enabled
 
@@ -420,8 +461,8 @@ blocks:
     fftsize: '2048'
     freqhalf: 'True'
     grid: 'True'
-    gui_hint: 3,0,1,2
-    label: UHF Spectrum
+    gui_hint: 4,0,1,2
+    label: RFID Spectrum
     label1: ''
     label10: ''
     label2: ''
@@ -499,7 +540,7 @@ blocks:
     fftsize: '1024'
     freqhalf: 'True'
     grid: 'True'
-    gui_hint: 4,0,1,2
+    gui_hint: 5,0,1,2
     int_max: '-10'
     int_min: '-110'
     label1: ''
@@ -515,7 +556,7 @@ blocks:
     legend: 'True'
     maxoutbuf: '0'
     minoutbuf: '0'
-    name: '""'
+    name: '"RFID Burst Waterfall"'
     nconnections: '1'
     showports: 'False'
     type: complex
@@ -544,7 +585,7 @@ blocks:
     alpha7: '1.0'
     alpha8: '1.0'
     alpha9: '1.0'
-    autoscale: 'False'
+    autoscale: 'True'
     axislabels: 'True'
     color1: blue
     color10: dark blue
@@ -560,8 +601,8 @@ blocks:
     ctrlpanel: 'True'
     entags: 'False'
     grid: 'True'
-    gui_hint: 3,2,2,2
-    label1: Envelope
+    gui_hint: 4,2,2,2
+    label1: Envelope x Gain
     label10: ''
     label2: Bits
     label3: ''
@@ -574,7 +615,7 @@ blocks:
     legend: 'True'
     marker1: '-1'
     marker10: '-1'
-    marker2: '-1'
+    marker2: '1'
     marker3: '-1'
     marker4: '-1'
     marker5: '-1'
@@ -584,13 +625,13 @@ blocks:
     marker9: '-1'
     maxoutbuf: '0'
     minoutbuf: '0'
-    name: '"EPC Gen2 Basic Demod"'
+    name: '"Pulsos Didácticos EPC Gen2"'
     nconnections: '2'
     srate: samp_rate/decim
     stemplot: 'False'
     style1: '1'
     style10: '1'
-    style2: '1'
+    style2: '2'
     style3: '1'
     style4: '1'
     style5: '1'
@@ -605,10 +646,10 @@ blocks:
     tr_slope: qtgui.TRIG_SLOPE_POS
     tr_tag: '""'
     type: float
-    update_time: '0.05'
+    update_time: '0.02'
     width1: '1'
     width10: '1'
-    width2: '2'
+    width2: '3'
     width3: '1'
     width4: '1'
     width5: '1'
@@ -618,9 +659,9 @@ blocks:
     width9: '1'
     yunit: '""'
     ylabel: Amplitude
-    ymax: '1.2'
+    ymax: '1.5'
     ymin: '-0.2'
-    size: '4096'
+    size: '8192'
   states:
     bus_sink: false
     bus_source: false
@@ -635,10 +676,11 @@ connections:
 - [osmosdr_source_0, '0', blocks_complex_to_mag_squared_0, '0']
 - [blocks_complex_to_mag_squared_0, '0', fir_filter_xxx_0, '0']
 - [fir_filter_xxx_0, '0', blocks_moving_average_xx_0, '0']
-- [blocks_moving_average_xx_0, '0', blocks_threshold_ff_0, '0']
+- [blocks_moving_average_xx_0, '0', blocks_multiply_const_vxx_0, '0']
+- [blocks_multiply_const_vxx_0, '0', blocks_threshold_ff_0, '0']
 - [blocks_threshold_ff_0, '0', digital_binary_slicer_fb_0, '0']
 - [digital_binary_slicer_fb_0, '0', blocks_char_to_float_0, '0']
-- [blocks_moving_average_xx_0, '0', qtgui_time_sink_x_0, '0']
+- [blocks_multiply_const_vxx_0, '0', qtgui_time_sink_x_0, '0']
 - [blocks_char_to_float_0, '0', qtgui_time_sink_x_0, '1']
 
 metadata:
