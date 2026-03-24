@@ -77,13 +77,13 @@ class rfid_hackrf_capture(gr.top_block, Qt.QWidget):
         ##################################################
         # Variables
         ##################################################
-        self.samp_rate = samp_rate = 10e6
+        self.samp_rate = samp_rate = 2e6
         self.rf_gain = rf_gain = 16
         self.ppm = ppm = 0
         self.if_gain = if_gain = 24
-        self.center_freq = center_freq = 915e6
+        self.center_freq = center_freq = 13.5e6
         self.bb_gain = bb_gain = 20
-        self.bandwidth = bandwidth = 10e6
+        self.bandwidth = bandwidth = 2e6
 
         ##################################################
         # Blocks
@@ -94,7 +94,7 @@ class rfid_hackrf_capture(gr.top_block, Qt.QWidget):
         self._if_gain_range = Range(0, 47, 1, 24, 200)
         self._if_gain_win = RangeWidget(self._if_gain_range, self.set_if_gain, "IF Gain (dB)", "counter_slider", float, QtCore.Qt.Horizontal)
         self.top_layout.addWidget(self._if_gain_win)
-        self._center_freq_range = Range(10e6, 960e6, 1e5, 915e6, 200)
+        self._center_freq_range = Range(10e6, 960e6, 1e5, 13.5e6, 200)
         self._center_freq_win = RangeWidget(self._center_freq_range, self.set_center_freq, "Center Freq (Hz)", "counter_slider", float, QtCore.Qt.Horizontal)
         self.top_layout.addWidget(self._center_freq_win)
         self._bb_gain_range = Range(0, 62, 1, 20, 200)

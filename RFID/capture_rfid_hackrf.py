@@ -96,9 +96,9 @@ class RFIDHackRFCapture(gr.top_block, Qt.QWidget):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Captura de señales RFID con HackRF + GNU Radio")
-    parser.add_argument("--freq", type=float, default=915e6, help="Frecuencia central en Hz (por defecto 915e6)")
-    parser.add_argument("--samp-rate", type=float, default=10e6, help="Sample rate en S/s (por defecto 10e6)")
-    parser.add_argument("--bandwidth", type=float, default=10e6, help="Ancho de banda RF en Hz")
+    parser.add_argument("--freq", type=float, default=13.5e6, help="Frecuencia central en Hz (por defecto 13.5e6)")
+    parser.add_argument("--samp-rate", type=float, default=2e6, help="Sample rate en S/s (por defecto 2e6)")
+    parser.add_argument("--bandwidth", type=float, default=2e6, help="Ancho de banda RF en Hz")
     parser.add_argument("--rf-gain", type=float, default=16, help="Ganancia RF/LNA")
     parser.add_argument("--if-gain", type=float, default=24, help="Ganancia IF/VGA")
     parser.add_argument("--bb-gain", type=float, default=20, help="Ganancia baseband")

@@ -69,12 +69,12 @@ gnuradio-companion rfid_hackrf_capture.grc
 4. O ejecuta captura directa por script:
 
 ```bash
-python3 capture_rfid_hackrf.py --freq 915e6 --samp-rate 10e6 --bandwidth 10e6 --rf-gain 16 --if-gain 24 --bb-gain 20
+python3 capture_rfid_hackrf.py --freq 13.5e6 --samp-rate 2e6 --bandwidth 2e6 --rf-gain 24 --if-gain 24 --bb-gain 20
 ```
 
 ## Próximas prácticas
 
-- [ ] Demodulación básica de tramas RFID UHF (EPC Gen2).
+- [x] Demodulación básica de tramas RFID UHF (EPC Gen2).
 - [ ] Post-procesado offline de archivos IQ capturados.
 - [ ] Comparación de desempeño por banda (HF 13.56 MHz vs UHF 860–960 MHz).
 - [ ] Automatización de capturas por lotes con distintos parámetros de ganancia.

@@ -48,7 +48,7 @@ gnuradio-companion rfid_epcgen2_basic_demod.grc
 
 Parámetros clave dentro del diagrama:
 
-- `center_freq`: frecuencia central (ej. `866e6`, `915e6`, `13.56e6`).
+- `center_freq`: frecuencia central (ej. `866e6`, `915e6`, `13.5e6`).
 - `samp_rate`: tasa de muestreo.
 - `bandwidth`: ancho de banda.
 - `rf_gain`, `if_gain`, `bb_gain`: ganancias del frontend.
@@ -62,7 +62,7 @@ Parámetros clave en `rfid_epcgen2_basic_demod.grc`:
 ### Opción B: Script Python
 
 ```bash
-python3 capture_rfid_hackrf.py --freq 915e6 --samp-rate 10e6 --bandwidth 10e6 --rf-gain 16 --if-gain 24 --bb-gain 20
+python3 capture_rfid_hackrf.py --freq 13.5e6 --samp-rate 2e6 --bandwidth 2e6 --rf-gain 24 --if-gain 24 --bb-gain 20
 ```
 
 ## Presets recomendados
