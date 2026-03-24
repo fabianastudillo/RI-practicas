@@ -70,6 +70,7 @@ class UIDDetector(gr.sync_block):
         self.samples_per_symbol = max(2.0, self.sample_rate / self.symbol_rate)
         self.counts = defaultdict(int)
         self.last_reported = None
+        self._diag_call_count = 0
 
     def _try_decode_uid(self, bits):
         n = len(bits)
@@ -143,9 +144,24 @@ class UIDDetector(gr.sync_block):
 
     def work(self, input_items, output_items):
         in0 = input_items[0]
-        for value in in0:
-            self.buffer.append(1 if int(value) > 0 else 0)
-        self._scan_candidates()
+        # Vectorized: evita loop Python sobre cada sample
+        bits = (in0 > 0).tolist()
+        self.buffer.extend(bits)
+        self._diag_call_count += 1
+        # Diagnostico cada ~2 s: imprime fraccion de 1s en el buffer.
+        # Si siempre es 0.00 -> threshold demasiado alto o senal no llega al slicer.
+        # Si siempre es 1.00 -> threshold demasiado bajo.
+        # Si oscila 0.3-0.7 -> senal presente, problema es en el decoder.
+        if self._diag_call_count % 500 == 0:
+            ones_ratio = sum(bits) / max(len(bits), 1)
+            print('[DIAG] ones_ratio={:.2f}  buffer_len={}'.format(
+                ones_ratio, len(self.buffer)))
+        # Escanear cada ~50 ms en vez de cada llamada a work().
+        # A 2 Msps con bloques de ~8192 samples, work() se llama ~250 veces/s.
+        # Correr _scan_candidates() en cada llamada saturaba la CPU y causaba
+        # que el scheduler dropee samples (tramas incompletas -> BCC siempre falla).
+        if self._diag_call_count % 10 == 0:
+            self._scan_candidates()
         return len(in0)
 
 
@@ -188,14 +204,24 @@ class RFIDTagIDDecoder(gr.top_block, Qt.QWidget):
         self.source.set_antenna("", 0)
         self.source.set_bandwidth(bandwidth, 0)
 
-        self.c2mag = blocks.complex_to_mag_squared(1)
-        self.lpf = filter.fir_filter_fff(
-            int(decim),
-            firdes.low_pass(
-                1.0, samp_rate, lpf_cutoff, lpf_transition,
-                firdes.WIN_HAMMING, 6.76
-            ),
+        # Trasladar subportadora ISO14443A (847.5 kHz) a banda base y decimar.
+        # Esto es necesario porque complex_to_mag_squared en la cadena anterior
+        # producia una senal dominada por el portador DC del RC522, haciendo que
+        # el threshold luchara contra el nivel del portador en vez de la modulacion.
+        # freq_xlating_fir_filter desplaza el sideband del backscatter a 0 Hz y
+        # aplica el LPF + decimacion en un solo paso.
+        SUBCARRIER_HZ = 847500.0
+        xlating_taps = firdes.low_pass(
+            1.0, samp_rate,
+            lpf_cutoff, lpf_transition,
+            firdes.WIN_HAMMING, 6.76,
         )
+        self.xlating_fir = filter.freq_xlating_fir_filter_ccc(
+            int(decim), xlating_taps, SUBCARRIER_HZ, samp_rate
+        )
+        # Envolvente de la subportadora desplazada: alta cuando hay subportadora,
+        # ~0 cuando no la hay. Usar complex_to_mag (no squared) para respuesta lineal.
+        self.c2mag = blocks.complex_to_mag(1)
         self.smooth = blocks.moving_average_ff(
             int(smooth_len), 1.0 / float(smooth_len), 4096, 1
         )
@@ -245,9 +271,9 @@ class RFIDTagIDDecoder(gr.top_block, Qt.QWidget):
 
         self.connect((self.source, 0), (self.freq_sink, 0))
         self.connect((self.source, 0), (self.waterfall_sink, 0))
-        self.connect((self.source, 0), (self.c2mag, 0))
-        self.connect((self.c2mag, 0), (self.lpf, 0))
-        self.connect((self.lpf, 0), (self.smooth, 0))
+        self.connect((self.source, 0), (self.xlating_fir, 0))
+        self.connect((self.xlating_fir, 0), (self.c2mag, 0))
+        self.connect((self.c2mag, 0), (self.smooth, 0))
         self.connect((self.smooth, 0), (self.env_amp, 0))
         self.connect((self.env_amp, 0), (self.pulse_sink, 0))
         self.connect((self.env_amp, 0), (self.thr, 0))
@@ -272,10 +298,10 @@ def parse_args():
     parser.add_argument("--bb-gain", type=float, default=20, help="Ganancia baseband")
     parser.add_argument("--ppm", type=float, default=0, help="Correccion en ppm")
     parser.add_argument("--hackrf-index", type=int, default=0, help="Indice del HackRF")
-    parser.add_argument("--lpf-cutoff", type=float, default=950e3,
-                        help="Cutoff LPF en Hz (debe ser > 847.5 kHz para ISO14443A)")
-    parser.add_argument("--lpf-transition", type=float, default=100e3,
-                        help="Transicion LPF en Hz")
+    parser.add_argument("--lpf-cutoff", type=float, default=212e3,
+                        help="Ancho de banda del xlating FIR (2x symbol rate = 212 kHz para 106 kbps)")
+    parser.add_argument("--lpf-transition", type=float, default=50e3,
+                        help="Transicion del xlating FIR en Hz")
     parser.add_argument("--decim", type=int, default=2,
                         help="Factor de decimacion (2 con samp-rate=4e6 -> 2 MHz efectivos)")
     parser.add_argument("--smooth-len", type=int, default=4, help="Ventana de suavizado")

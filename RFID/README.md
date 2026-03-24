@@ -49,17 +49,17 @@ cd /home/fabian/Projects/github/RI-practicas/RFID
 gnuradio-companion rfid_epcgen2_basic_demod.grc
 ```
 
-Para demo de lectura RFID con UID en consola:
+Para demo de lectura RFID con UID en consola y campo visual en GUI:
 
 ```bash
 cd /home/fabian/Projects/github/RI-practicas/RFID
 gnuradio-companion rfid_reader_demo.grc
 ```
 
-En esta demo, cuando el detector encuentra una trama candidata válida, imprime en terminal:
+En esta demo, la GUI muestra el campo **Tag ID detectado** (inicia como `UID: -- -- -- --`) y, cuando el detector encuentra una trama candidata válida, también imprime en terminal:
 
 ```text
-[UID detectado] XXXXXXXX
+[UID detectado] UID: XX XX XX XX
 ```
 
 Parámetros clave dentro del diagrama:
@@ -128,7 +128,7 @@ python3 rfid_tag_id_decoder.py --freq 13.5e6 --samp-rate 2e6 --bandwidth 2e6 --r
 Cuando el decodificador valida una trama candidata, imprime:
 
 ```text
-[UID detectado] XXXXXXXX
+[UID detectado] UID: XX XX XX XX
 ```
 
 ## Presets recomendados
