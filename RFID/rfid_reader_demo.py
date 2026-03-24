@@ -22,6 +22,7 @@ if __name__ == '__main__':
             print("Warning: failed to XInitThreads()")
 
 from PyQt5 import Qt
+from gnuradio import eng_notation
 from gnuradio import qtgui
 from gnuradio.filter import firdes
 import sip
@@ -34,7 +35,6 @@ import sys
 import signal
 from argparse import ArgumentParser
 from gnuradio.eng_arg import eng_float, intx
-from gnuradio import eng_notation
 from gnuradio.qtgui import Range, RangeWidget
 from PyQt5 import QtCore
 import osmosdr
@@ -81,39 +81,40 @@ class rfid_reader_demo(gr.top_block, Qt.QWidget):
         ##################################################
         # Variables
         ##################################################
-        self.uid_repeats = uid_repeats = 3
+        self.uid_repeats = uid_repeats = 2
         self.threshold_level = threshold_level = 0.35
-        self.smooth_len = smooth_len = 16
-        self.samp_rate = samp_rate = 2e6
-        self.rf_gain = rf_gain = 16
+        self.smooth_len = smooth_len = 4
+        self.samp_rate = samp_rate = 4e6
+        self.rf_gain = rf_gain = 24
         self.ppm = ppm = 0
-        self.lpf_cutoff = lpf_cutoff = 120e3
+        self.lpf_cutoff = lpf_cutoff = 950e3
         self.if_gain = if_gain = 24
-        self.env_gain = env_gain = 40.0
-        self.decim = decim = 10
-        self.center_freq = center_freq = 13.5e6
+        self.env_gain = env_gain = 100.0
+        self.detected_uid = detected_uid = "UID: -- -- -- --"
+        self.decim = decim = 2
+        self.center_freq = center_freq = 13.56e6
         self.bb_gain = bb_gain = 20
-        self.bandwidth = bandwidth = 2e6
+        self.bandwidth = bandwidth = 4e6
 
         ##################################################
         # Blocks
         ##################################################
-        self._threshold_level_range = Range(0.01, 2.0, 0.01, 0.35, 200)
+        self._threshold_level_range = Range(0.01, 4.0, 0.01, 0.35, 200)
         self._threshold_level_win = RangeWidget(self._threshold_level_range, self.set_threshold_level, "Threshold", "counter_slider", float, QtCore.Qt.Horizontal)
         self.top_layout.addWidget(self._threshold_level_win)
-        self._rf_gain_range = Range(0, 40, 1, 16, 200)
+        self._rf_gain_range = Range(0, 40, 1, 24, 200)
         self._rf_gain_win = RangeWidget(self._rf_gain_range, self.set_rf_gain, "RF Gain (dB)", "counter_slider", float, QtCore.Qt.Horizontal)
         self.top_layout.addWidget(self._rf_gain_win)
-        self._lpf_cutoff_range = Range(10e3, 300e3, 5e3, 120e3, 200)
+        self._lpf_cutoff_range = Range(100e3, 2e6, 50e3, 950e3, 200)
         self._lpf_cutoff_win = RangeWidget(self._lpf_cutoff_range, self.set_lpf_cutoff, "LPF Cutoff (Hz)", "counter_slider", float, QtCore.Qt.Horizontal)
         self.top_layout.addWidget(self._lpf_cutoff_win)
         self._if_gain_range = Range(0, 47, 1, 24, 200)
         self._if_gain_win = RangeWidget(self._if_gain_range, self.set_if_gain, "IF Gain (dB)", "counter_slider", float, QtCore.Qt.Horizontal)
         self.top_layout.addWidget(self._if_gain_win)
-        self._env_gain_range = Range(1.0, 200.0, 1.0, 40.0, 200)
+        self._env_gain_range = Range(1.0, 400.0, 1.0, 100.0, 200)
         self._env_gain_win = RangeWidget(self._env_gain_range, self.set_env_gain, "Env Gain", "counter_slider", float, QtCore.Qt.Horizontal)
         self.top_layout.addWidget(self._env_gain_win)
-        self._center_freq_range = Range(10e6, 960e6, 1e5, 13.5e6, 200)
+        self._center_freq_range = Range(10e6, 960e6, 1e5, 13.56e6, 200)
         self._center_freq_win = RangeWidget(self._center_freq_range, self.set_center_freq, "Center Freq (Hz)", "counter_slider", float, QtCore.Qt.Horizontal)
         self.top_layout.addWidget(self._center_freq_win)
         self._bb_gain_range = Range(0, 62, 1, 20, 200)
@@ -324,8 +325,23 @@ class rfid_reader_demo(gr.top_block, Qt.QWidget):
         self.osmosdr_source_0.set_bandwidth(bandwidth, 0)
         self.fir_filter_xxx_0 = filter.fir_filter_fff(decim, firdes.low_pass(1.0, samp_rate, lpf_cutoff, 20e3, window.WIN_HAMMING, 6.76))
         self.fir_filter_xxx_0.declare_sample_delay(0)
-        self.epy_block_0 = epy_block_0.blk(min_repeats=uid_repeats)
+        self.epy_block_0 = epy_block_0.blk(min_repeats=uid_repeats, sample_rate=samp_rate/decim, symbol_rate=106e3, top_block=locals().get('self', None))
         self.digital_binary_slicer_fb_0 = digital.binary_slicer_fb()
+        self._detected_uid_tool_bar = Qt.QToolBar(self)
+
+        if None:
+            self._detected_uid_formatter = None
+        else:
+            self._detected_uid_formatter = lambda x: str(x)
+
+        self._detected_uid_tool_bar.addWidget(Qt.QLabel("Tag ID detectado"))
+        self._detected_uid_label = Qt.QLabel(str(self._detected_uid_formatter(self.detected_uid)))
+        self._detected_uid_tool_bar.addWidget(self._detected_uid_label)
+        self.top_grid_layout.addWidget(self._detected_uid_tool_bar, 0, 0, 1, 2)
+        for r in range(0, 1):
+            self.top_grid_layout.setRowStretch(r, 1)
+        for c in range(0, 2):
+            self.top_grid_layout.setColumnStretch(c, 1)
         self.blocks_threshold_ff_0 = blocks.threshold_ff(threshold_level, threshold_level*1.20, 0)
         self.blocks_multiply_const_vxx_0 = blocks.multiply_const_ff(env_gain)
         self.blocks_moving_average_xx_0 = blocks.moving_average_ff(smooth_len, 1.0/smooth_len, 4096, 1)
@@ -389,6 +405,7 @@ class rfid_reader_demo(gr.top_block, Qt.QWidget):
         self.qtgui_freq_sink_x_0.set_frequency_range(self.center_freq, self.samp_rate)
         self.qtgui_waterfall_sink_x_0.set_frequency_range(self.center_freq, self.samp_rate)
         self.fir_filter_xxx_0.set_taps(firdes.low_pass(1.0, self.samp_rate, self.lpf_cutoff, 20e3, window.WIN_HAMMING, 6.76))
+        self.epy_block_0.sample_rate = self.samp_rate/self.decim
         self.qtgui_time_sink_x_0.set_samp_rate(self.samp_rate/self.decim)
         self.qtgui_time_sink_x_1.set_samp_rate(self.samp_rate/self.decim)
 
@@ -427,11 +444,19 @@ class rfid_reader_demo(gr.top_block, Qt.QWidget):
         self.env_gain = env_gain
         self.blocks_multiply_const_vxx_0.set_k(self.env_gain)
 
+    def get_detected_uid(self):
+        return self.detected_uid
+
+    def set_detected_uid(self, detected_uid):
+        self.detected_uid = detected_uid
+        Qt.QMetaObject.invokeMethod(self._detected_uid_label, "setText", Qt.Q_ARG("QString", str(self._detected_uid_formatter(self.detected_uid))))
+
     def get_decim(self):
         return self.decim
 
     def set_decim(self, decim):
         self.decim = decim
+        self.epy_block_0.sample_rate = self.samp_rate/self.decim
         self.qtgui_time_sink_x_0.set_samp_rate(self.samp_rate/self.decim)
         self.qtgui_time_sink_x_1.set_samp_rate(self.samp_rate/self.decim)
 
