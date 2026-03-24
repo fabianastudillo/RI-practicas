@@ -36,7 +36,7 @@ class blk(gr.sync_block):
 
     def __init__(self, min_repeats=2, sample_rate=2e6, symbol_rate=106e3, top_block=None):
         gr.sync_block.__init__(self, name='UID Detector',
-                               in_sig=[np.uint8], out_sig=[np.uint8])
+                               in_sig=[np.uint8], out_sig=[])
         self.buffer = deque(maxlen=40000)
         self.min_repeats = int(min_repeats)
         self.sample_rate = float(sample_rate)
@@ -123,9 +123,7 @@ class blk(gr.sync_block):
 
     def work(self, input_items, output_items):
         in0 = input_items[0]
-        out = output_items[0]
-        out[:] = in0
         for x in in0:
             self.buffer.append(1 if int(x) > 0 else 0)
         self._scan_candidates()
-        return len(out)
+        return len(in0)
