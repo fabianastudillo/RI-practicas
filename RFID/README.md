@@ -15,6 +15,8 @@ Visualización en tiempo real de señales RFID con **GNU Radio** y **HackRF**, u
 - `capture_rfid_hackrf.py`: visualizador en tiempo real con GUI (espectro, waterfall y dominio temporal).
 - `rfid_hackrf_capture.grc`: proyecto de GNU Radio Companion para captura con HackRF.
 - `rfid_hackrf_capture.py`: script autogenerado desde el `.grc`.
+- `rfid_reader_demo.grc`: demo tipo lectura RFID (estilo NFC) con impresión de UID en consola.
+- `rfid_reader_demo.py`: script autogenerado desde el `.grc` de demo.
 - `rfid_epcgen2_basic_demod.grc`: demodulación básica UHF RFID EPC Gen2 (envolvente + filtrado + slicer).
 - `rfid_epcgen2_basic_demod.py`: script autogenerado desde el `.grc` de demodulación.
 - `rfid_tag_id_decoder.py`: decodificación básica de trama y detección de UID/ID en tiempo real (salida por consola).
@@ -45,6 +47,19 @@ Para demodulación básica EPC Gen2:
 ```bash
 cd /home/fabian/Projects/github/RI-practicas/RFID
 gnuradio-companion rfid_epcgen2_basic_demod.grc
+```
+
+Para demo de lectura RFID con UID en consola:
+
+```bash
+cd /home/fabian/Projects/github/RI-practicas/RFID
+gnuradio-companion rfid_reader_demo.grc
+```
+
+En esta demo, cuando el detector encuentra una trama candidata válida, imprime en terminal:
+
+```text
+[UID detectado] XXXXXXXX
 ```
 
 Parámetros clave dentro del diagrama:
