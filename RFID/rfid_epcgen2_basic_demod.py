@@ -5,8 +5,8 @@
 # SPDX-License-Identifier: GPL-3.0
 #
 # GNU Radio Python Flow Graph
-# Title: RFID HackRF Capture
-# Description: Captura RFID con HackRF (OsmoSDR)
+# Title: RFID UHF EPC Gen2 Basic Demod
+# Description: Demodulación básica UHF RFID EPC Gen2 con HackRF
 # GNU Radio version: 3.10.1.1
 
 from packaging.version import Version as StrictVersion
@@ -25,6 +25,9 @@ from PyQt5 import Qt
 from gnuradio import qtgui
 from gnuradio.filter import firdes
 import sip
+from gnuradio import blocks
+from gnuradio import digital
+from gnuradio import filter
 from gnuradio import gr
 from gnuradio.fft import window
 import sys
@@ -41,12 +44,12 @@ import time
 
 from gnuradio import qtgui
 
-class rfid_hackrf_capture(gr.top_block, Qt.QWidget):
+class rfid_epcgen2_basic_demod(gr.top_block, Qt.QWidget):
 
     def __init__(self):
-        gr.top_block.__init__(self, "RFID HackRF Capture", catch_exceptions=True)
+        gr.top_block.__init__(self, "RFID UHF EPC Gen2 Basic Demod", catch_exceptions=True)
         Qt.QWidget.__init__(self)
-        self.setWindowTitle("RFID HackRF Capture")
+        self.setWindowTitle("RFID UHF EPC Gen2 Basic Demod")
         qtgui.util.check_set_qss()
         try:
             self.setWindowIcon(Qt.QIcon.fromTheme('gnuradio-grc'))
@@ -64,7 +67,7 @@ class rfid_hackrf_capture(gr.top_block, Qt.QWidget):
         self.top_grid_layout = Qt.QGridLayout()
         self.top_layout.addLayout(self.top_grid_layout)
 
-        self.settings = Qt.QSettings("GNU Radio", "rfid_hackrf_capture")
+        self.settings = Qt.QSettings("GNU Radio", "rfid_epcgen2_basic_demod")
 
         try:
             if StrictVersion(Qt.qVersion()) < StrictVersion("5.0.0"):
@@ -77,10 +80,15 @@ class rfid_hackrf_capture(gr.top_block, Qt.QWidget):
         ##################################################
         # Variables
         ##################################################
+        self.threshold_level = threshold_level = 0.01
+        self.smooth_len = smooth_len = 32
         self.samp_rate = samp_rate = 10e6
         self.rf_gain = rf_gain = 16
         self.ppm = ppm = 0
+        self.lpf_transition = lpf_transition = 80e3
+        self.lpf_cutoff = lpf_cutoff = 200e3
         self.if_gain = if_gain = 24
+        self.decim = decim = 20
         self.center_freq = center_freq = 915e6
         self.bb_gain = bb_gain = 20
         self.bandwidth = bandwidth = 10e6
@@ -88,18 +96,48 @@ class rfid_hackrf_capture(gr.top_block, Qt.QWidget):
         ##################################################
         # Blocks
         ##################################################
+        self._threshold_level_range = Range(0.0001, 0.1, 0.0005, 0.01, 200)
+        self._threshold_level_win = RangeWidget(self._threshold_level_range, self.set_threshold_level, "Threshold", "counter_slider", float, QtCore.Qt.Horizontal)
+        self.top_grid_layout.addWidget(self._threshold_level_win, 2, 2, 1, 2)
+        for r in range(2, 3):
+            self.top_grid_layout.setRowStretch(r, 1)
+        for c in range(2, 4):
+            self.top_grid_layout.setColumnStretch(c, 1)
         self._rf_gain_range = Range(0, 40, 1, 16, 200)
         self._rf_gain_win = RangeWidget(self._rf_gain_range, self.set_rf_gain, "RF Gain (dB)", "counter_slider", float, QtCore.Qt.Horizontal)
-        self.top_layout.addWidget(self._rf_gain_win)
+        self.top_grid_layout.addWidget(self._rf_gain_win, 0, 2, 1, 2)
+        for r in range(0, 1):
+            self.top_grid_layout.setRowStretch(r, 1)
+        for c in range(2, 4):
+            self.top_grid_layout.setColumnStretch(c, 1)
+        self._lpf_cutoff_range = Range(30e3, 500e3, 10e3, 200e3, 200)
+        self._lpf_cutoff_win = RangeWidget(self._lpf_cutoff_range, self.set_lpf_cutoff, "LPF Cutoff (Hz)", "counter_slider", float, QtCore.Qt.Horizontal)
+        self.top_grid_layout.addWidget(self._lpf_cutoff_win, 2, 0, 1, 2)
+        for r in range(2, 3):
+            self.top_grid_layout.setRowStretch(r, 1)
+        for c in range(0, 2):
+            self.top_grid_layout.setColumnStretch(c, 1)
         self._if_gain_range = Range(0, 47, 1, 24, 200)
         self._if_gain_win = RangeWidget(self._if_gain_range, self.set_if_gain, "IF Gain (dB)", "counter_slider", float, QtCore.Qt.Horizontal)
-        self.top_layout.addWidget(self._if_gain_win)
-        self._center_freq_range = Range(10e6, 960e6, 1e5, 915e6, 200)
+        self.top_grid_layout.addWidget(self._if_gain_win, 1, 0, 1, 2)
+        for r in range(1, 2):
+            self.top_grid_layout.setRowStretch(r, 1)
+        for c in range(0, 2):
+            self.top_grid_layout.setColumnStretch(c, 1)
+        self._center_freq_range = Range(860e6, 960e6, 1e5, 915e6, 200)
         self._center_freq_win = RangeWidget(self._center_freq_range, self.set_center_freq, "Center Freq (Hz)", "counter_slider", float, QtCore.Qt.Horizontal)
-        self.top_layout.addWidget(self._center_freq_win)
+        self.top_grid_layout.addWidget(self._center_freq_win, 0, 0, 1, 2)
+        for r in range(0, 1):
+            self.top_grid_layout.setRowStretch(r, 1)
+        for c in range(0, 2):
+            self.top_grid_layout.setColumnStretch(c, 1)
         self._bb_gain_range = Range(0, 62, 1, 20, 200)
         self._bb_gain_win = RangeWidget(self._bb_gain_range, self.set_bb_gain, "BB Gain (dB)", "counter_slider", float, QtCore.Qt.Horizontal)
-        self.top_layout.addWidget(self._bb_gain_win)
+        self.top_grid_layout.addWidget(self._bb_gain_win, 1, 2, 1, 2)
+        for r in range(1, 2):
+            self.top_grid_layout.setRowStretch(r, 1)
+        for c in range(2, 4):
+            self.top_grid_layout.setColumnStretch(c, 1)
         self.qtgui_waterfall_sink_x_0 = qtgui.waterfall_sink_c(
             1024, #size
             window.WIN_BLACKMAN_hARRIS, #wintype
@@ -134,13 +172,65 @@ class rfid_hackrf_capture(gr.top_block, Qt.QWidget):
 
         self._qtgui_waterfall_sink_x_0_win = sip.wrapinstance(self.qtgui_waterfall_sink_x_0.qwidget(), Qt.QWidget)
 
-        self.top_grid_layout.addWidget(self._qtgui_waterfall_sink_x_0_win, 2, 0, 1, 2)
-        for r in range(2, 3):
+        self.top_grid_layout.addWidget(self._qtgui_waterfall_sink_x_0_win, 4, 0, 1, 2)
+        for r in range(4, 5):
             self.top_grid_layout.setRowStretch(r, 1)
         for c in range(0, 2):
             self.top_grid_layout.setColumnStretch(c, 1)
+        self.qtgui_time_sink_x_0 = qtgui.time_sink_f(
+            4096, #size
+            samp_rate/decim, #samp_rate
+            "EPC Gen2 Basic Demod", #name
+            2, #number of inputs
+            None # parent
+        )
+        self.qtgui_time_sink_x_0.set_update_time(0.05)
+        self.qtgui_time_sink_x_0.set_y_axis(-0.2, 1.2)
+
+        self.qtgui_time_sink_x_0.set_y_label('Amplitude', "")
+
+        self.qtgui_time_sink_x_0.enable_tags(False)
+        self.qtgui_time_sink_x_0.set_trigger_mode(qtgui.TRIG_MODE_FREE, qtgui.TRIG_SLOPE_POS, 0.0, 0, 0, "")
+        self.qtgui_time_sink_x_0.enable_autoscale(False)
+        self.qtgui_time_sink_x_0.enable_grid(True)
+        self.qtgui_time_sink_x_0.enable_axis_labels(True)
+        self.qtgui_time_sink_x_0.enable_control_panel(True)
+        self.qtgui_time_sink_x_0.enable_stem_plot(False)
+
+
+        labels = ['Envelope', 'Bits', '', '', '',
+            '', '', '', '', '']
+        widths = [1, 2, 1, 1, 1,
+            1, 1, 1, 1, 1]
+        colors = ['blue', 'red', 'green', 'black', 'cyan',
+            'magenta', 'yellow', 'dark red', 'dark green', 'dark blue']
+        alphas = [1.0, 1.0, 1.0, 1.0, 1.0,
+            1.0, 1.0, 1.0, 1.0, 1.0]
+        styles = [1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1]
+        markers = [-1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1]
+
+
+        for i in range(2):
+            if len(labels[i]) == 0:
+                self.qtgui_time_sink_x_0.set_line_label(i, "Data {0}".format(i))
+            else:
+                self.qtgui_time_sink_x_0.set_line_label(i, labels[i])
+            self.qtgui_time_sink_x_0.set_line_width(i, widths[i])
+            self.qtgui_time_sink_x_0.set_line_color(i, colors[i])
+            self.qtgui_time_sink_x_0.set_line_style(i, styles[i])
+            self.qtgui_time_sink_x_0.set_line_marker(i, markers[i])
+            self.qtgui_time_sink_x_0.set_line_alpha(i, alphas[i])
+
+        self._qtgui_time_sink_x_0_win = sip.wrapinstance(self.qtgui_time_sink_x_0.qwidget(), Qt.QWidget)
+        self.top_grid_layout.addWidget(self._qtgui_time_sink_x_0_win, 3, 2, 2, 2)
+        for r in range(3, 5):
+            self.top_grid_layout.setRowStretch(r, 1)
+        for c in range(2, 4):
+            self.top_grid_layout.setColumnStretch(c, 1)
         self.qtgui_freq_sink_x_0 = qtgui.freq_sink_c(
-            1024, #size
+            2048, #size
             window.WIN_BLACKMAN_hARRIS, #wintype
             center_freq, #fc
             samp_rate, #bw
@@ -150,7 +240,7 @@ class rfid_hackrf_capture(gr.top_block, Qt.QWidget):
         )
         self.qtgui_freq_sink_x_0.set_update_time(0.10)
         self.qtgui_freq_sink_x_0.set_y_axis(-130, 10)
-        self.qtgui_freq_sink_x_0.set_y_label('RFID Spectrum', 'dB')
+        self.qtgui_freq_sink_x_0.set_y_label('UHF Spectrum', 'dB')
         self.qtgui_freq_sink_x_0.set_trigger_mode(qtgui.TRIG_MODE_FREE, 0.0, 0, "")
         self.qtgui_freq_sink_x_0.enable_autoscale(False)
         self.qtgui_freq_sink_x_0.enable_grid(True)
@@ -180,8 +270,8 @@ class rfid_hackrf_capture(gr.top_block, Qt.QWidget):
             self.qtgui_freq_sink_x_0.set_line_alpha(i, alphas[i])
 
         self._qtgui_freq_sink_x_0_win = sip.wrapinstance(self.qtgui_freq_sink_x_0.qwidget(), Qt.QWidget)
-        self.top_grid_layout.addWidget(self._qtgui_freq_sink_x_0_win, 1, 0, 1, 2)
-        for r in range(1, 2):
+        self.top_grid_layout.addWidget(self._qtgui_freq_sink_x_0_win, 3, 0, 1, 2)
+        for r in range(3, 4):
             self.top_grid_layout.setRowStretch(r, 1)
         for c in range(0, 2):
             self.top_grid_layout.setColumnStretch(c, 1)
@@ -199,22 +289,52 @@ class rfid_hackrf_capture(gr.top_block, Qt.QWidget):
         self.osmosdr_source_0.set_bb_gain(bb_gain, 0)
         self.osmosdr_source_0.set_antenna("", 0)
         self.osmosdr_source_0.set_bandwidth(bandwidth, 0)
+        self.fir_filter_xxx_0 = filter.fir_filter_fff(decim, firdes.low_pass(1.0, samp_rate, lpf_cutoff, lpf_transition, window.WIN_HAMMING, 6.76))
+        self.fir_filter_xxx_0.declare_sample_delay(0)
+        self.digital_binary_slicer_fb_0 = digital.binary_slicer_fb()
+        self.blocks_threshold_ff_0 = blocks.threshold_ff(threshold_level, threshold_level*1.20, 0)
+        self.blocks_moving_average_xx_0 = blocks.moving_average_ff(smooth_len, 1.0/smooth_len, 4096, 1)
+        self.blocks_complex_to_mag_squared_0 = blocks.complex_to_mag_squared(1)
+        self.blocks_char_to_float_0 = blocks.char_to_float(1, 1)
 
 
         ##################################################
         # Connections
         ##################################################
+        self.connect((self.blocks_char_to_float_0, 0), (self.qtgui_time_sink_x_0, 1))
+        self.connect((self.blocks_complex_to_mag_squared_0, 0), (self.fir_filter_xxx_0, 0))
+        self.connect((self.blocks_moving_average_xx_0, 0), (self.blocks_threshold_ff_0, 0))
+        self.connect((self.blocks_moving_average_xx_0, 0), (self.qtgui_time_sink_x_0, 0))
+        self.connect((self.blocks_threshold_ff_0, 0), (self.digital_binary_slicer_fb_0, 0))
+        self.connect((self.digital_binary_slicer_fb_0, 0), (self.blocks_char_to_float_0, 0))
+        self.connect((self.fir_filter_xxx_0, 0), (self.blocks_moving_average_xx_0, 0))
+        self.connect((self.osmosdr_source_0, 0), (self.blocks_complex_to_mag_squared_0, 0))
         self.connect((self.osmosdr_source_0, 0), (self.qtgui_freq_sink_x_0, 0))
         self.connect((self.osmosdr_source_0, 0), (self.qtgui_waterfall_sink_x_0, 0))
 
 
     def closeEvent(self, event):
-        self.settings = Qt.QSettings("GNU Radio", "rfid_hackrf_capture")
+        self.settings = Qt.QSettings("GNU Radio", "rfid_epcgen2_basic_demod")
         self.settings.setValue("geometry", self.saveGeometry())
         self.stop()
         self.wait()
 
         event.accept()
+
+    def get_threshold_level(self):
+        return self.threshold_level
+
+    def set_threshold_level(self, threshold_level):
+        self.threshold_level = threshold_level
+        self.blocks_threshold_ff_0.set_hi(self.threshold_level*1.20)
+        self.blocks_threshold_ff_0.set_lo(self.threshold_level)
+
+    def get_smooth_len(self):
+        return self.smooth_len
+
+    def set_smooth_len(self, smooth_len):
+        self.smooth_len = smooth_len
+        self.blocks_moving_average_xx_0.set_length_and_scale(self.smooth_len, 1.0/self.smooth_len)
 
     def get_samp_rate(self):
         return self.samp_rate
@@ -222,8 +342,10 @@ class rfid_hackrf_capture(gr.top_block, Qt.QWidget):
     def set_samp_rate(self, samp_rate):
         self.samp_rate = samp_rate
         self.osmosdr_source_0.set_sample_rate(self.samp_rate)
+        self.fir_filter_xxx_0.set_taps(firdes.low_pass(1.0, self.samp_rate, self.lpf_cutoff, self.lpf_transition, window.WIN_HAMMING, 6.76))
         self.qtgui_freq_sink_x_0.set_frequency_range(self.center_freq, self.samp_rate)
         self.qtgui_waterfall_sink_x_0.set_frequency_range(self.center_freq, self.samp_rate)
+        self.qtgui_time_sink_x_0.set_samp_rate(self.samp_rate/self.decim)
 
     def get_rf_gain(self):
         return self.rf_gain
@@ -239,12 +361,33 @@ class rfid_hackrf_capture(gr.top_block, Qt.QWidget):
         self.ppm = ppm
         self.osmosdr_source_0.set_freq_corr(self.ppm, 0)
 
+    def get_lpf_transition(self):
+        return self.lpf_transition
+
+    def set_lpf_transition(self, lpf_transition):
+        self.lpf_transition = lpf_transition
+        self.fir_filter_xxx_0.set_taps(firdes.low_pass(1.0, self.samp_rate, self.lpf_cutoff, self.lpf_transition, window.WIN_HAMMING, 6.76))
+
+    def get_lpf_cutoff(self):
+        return self.lpf_cutoff
+
+    def set_lpf_cutoff(self, lpf_cutoff):
+        self.lpf_cutoff = lpf_cutoff
+        self.fir_filter_xxx_0.set_taps(firdes.low_pass(1.0, self.samp_rate, self.lpf_cutoff, self.lpf_transition, window.WIN_HAMMING, 6.76))
+
     def get_if_gain(self):
         return self.if_gain
 
     def set_if_gain(self, if_gain):
         self.if_gain = if_gain
         self.osmosdr_source_0.set_if_gain(self.if_gain, 0)
+
+    def get_decim(self):
+        return self.decim
+
+    def set_decim(self, decim):
+        self.decim = decim
+        self.qtgui_time_sink_x_0.set_samp_rate(self.samp_rate/self.decim)
 
     def get_center_freq(self):
         return self.center_freq
@@ -272,7 +415,7 @@ class rfid_hackrf_capture(gr.top_block, Qt.QWidget):
 
 
 
-def main(top_block_cls=rfid_hackrf_capture, options=None):
+def main(top_block_cls=rfid_epcgen2_basic_demod, options=None):
 
     if StrictVersion("4.5.0") <= StrictVersion(Qt.qVersion()) < StrictVersion("5.0.0"):
         style = gr.prefs().get_string('qtgui', 'style', 'raster')

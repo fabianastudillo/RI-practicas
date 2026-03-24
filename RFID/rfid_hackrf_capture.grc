@@ -46,15 +46,90 @@ blocks:
     state: enabled
 
 - name: center_freq
-  id: variable
+  id: variable_qtgui_range
   parameters:
     comment: ''
-    value: 915e6
+    gui_hint: ''
+    label: Center Freq (Hz)
+    min_len: '200'
+    orient: QtCore.Qt.Horizontal
+    rangeType: float
+    start: '10e6'
+    step: '1e5'
+    stop: '960e6'
+    value: '915e6'
+    widget: counter_slider
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [192, 72]
+    coordinate: [432, 16]
+    rotation: 0
+    state: enabled
+
+- name: rf_gain
+  id: variable_qtgui_range
+  parameters:
+    comment: ''
+    gui_hint: ''
+    label: RF Gain (dB)
+    min_len: '200'
+    orient: QtCore.Qt.Horizontal
+    rangeType: float
+    start: '0'
+    step: '1'
+    stop: '40'
+    value: '16'
+    widget: counter_slider
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [432, 88]
+    rotation: 0
+    state: enabled
+
+- name: if_gain
+  id: variable_qtgui_range
+  parameters:
+    comment: ''
+    gui_hint: ''
+    label: IF Gain (dB)
+    min_len: '200'
+    orient: QtCore.Qt.Horizontal
+    rangeType: float
+    start: '0'
+    step: '1'
+    stop: '47'
+    value: '24'
+    widget: counter_slider
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [432, 160]
+    rotation: 0
+    state: enabled
+
+- name: bb_gain
+  id: variable_qtgui_range
+  parameters:
+    comment: ''
+    gui_hint: ''
+    label: BB Gain (dB)
+    min_len: '200'
+    orient: QtCore.Qt.Horizontal
+    rangeType: float
+    start: '0'
+    step: '1'
+    stop: '62'
+    value: '20'
+    widget: counter_slider
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [432, 232]
     rotation: 0
     state: enabled
 
@@ -71,45 +146,6 @@ blocks:
     rotation: 0
     state: enabled
 
-- name: rf_gain
-  id: variable
-  parameters:
-    comment: ''
-    value: 16
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [192, 184]
-    rotation: 0
-    state: enabled
-
-- name: if_gain
-  id: variable
-  parameters:
-    comment: ''
-    value: 24
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [192, 240]
-    rotation: 0
-    state: enabled
-
-- name: bb_gain
-  id: variable
-  parameters:
-    comment: ''
-    value: 20
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [192, 296]
-    rotation: 0
-    state: enabled
-
 - name: ppm
   id: variable
   parameters:
@@ -120,19 +156,6 @@ blocks:
     bus_source: false
     bus_structure: null
     coordinate: [192, 352]
-    rotation: 0
-    state: enabled
-
-- name: output_file
-  id: variable
-  parameters:
-    comment: ''
-    value: '"rfid_capture_915M.cfile"'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [192, 408]
     rotation: 0
     state: enabled
 
@@ -198,12 +221,12 @@ blocks:
     color8: '"dark red"'
     color9: '"dark green"'
     comment: ''
-    ctrlpanel: 'False'
+    ctrlpanel: 'True'
     fc: center_freq
     fftsize: '1024'
     freqhalf: 'True'
     grid: 'True'
-    gui_hint: ''
+    gui_hint: 1,0,1,2
     label: RFID Spectrum
     label1: ''
     label10: ''
@@ -250,28 +273,71 @@ blocks:
     rotation: 0
     state: enabled
 
-- name: blocks_file_sink_0
-  id: blocks_file_sink
+- name: qtgui_waterfall_sink_x_0
+  id: qtgui_waterfall_sink_x
   parameters:
     affinity: ''
     alias: ''
-    append: 'False'
+    alpha1: '1.0'
+    alpha10: '1.0'
+    alpha2: '1.0'
+    alpha3: '1.0'
+    alpha4: '1.0'
+    alpha5: '1.0'
+    alpha6: '1.0'
+    alpha7: '1.0'
+    alpha8: '1.0'
+    alpha9: '1.0'
+    axislabels: 'True'
+    bw: samp_rate
+    color1: '0'
+    color10: '0'
+    color2: '0'
+    color3: '0'
+    color4: '0'
+    color5: '0'
+    color6: '0'
+    color7: '0'
+    color8: '0'
+    color9: '0'
     comment: ''
-    file: output_file
+    fc: center_freq
+    fftsize: '1024'
+    freqhalf: 'True'
+    grid: 'True'
+    gui_hint: 2,0,1,2
+    int_max: '-10'
+    int_min: '-110'
+    label1: ''
+    label10: ''
+    label2: ''
+    label3: ''
+    label4: ''
+    label5: ''
+    label6: ''
+    label7: ''
+    label8: ''
+    label9: ''
+    legend: 'True'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    name: '""'
+    nconnections: '1'
+    showports: 'False'
     type: complex
-    unbuffered: 'False'
-    vlen: '1'
+    update_time: '0.10'
+    wintype: window.WIN_BLACKMAN_hARRIS
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [792, 584]
+    coordinate: [792, 460]
     rotation: 0
     state: enabled
 
 connections:
 - [osmosdr_source_0, '0', qtgui_freq_sink_x_0, '0']
-- [osmosdr_source_0, '0', blocks_file_sink_0, '0']
+- [osmosdr_source_0, '0', qtgui_waterfall_sink_x_0, '0']
 
 metadata:
   file_format: 1

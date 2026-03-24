@@ -7,7 +7,6 @@ import sys
 from PyQt5 import Qt
 import sip
 
-from gnuradio import blocks
 from gnuradio import gr
 from gnuradio import qtgui
 import osmosdr
@@ -24,8 +23,6 @@ class RFIDHackRFCapture(gr.top_block, Qt.QWidget):
         bb_gain,
         ppm,
         hackrf_index,
-        output_file,
-        headless,
     ):
         gr.top_block.__init__(self, "RFID HackRF Capture")
         Qt.QWidget.__init__(self)
@@ -47,16 +44,6 @@ class RFIDHackRFCapture(gr.top_block, Qt.QWidget):
         self.source.set_bb_gain(bb_gain, 0)
         self.source.set_antenna("", 0)
         self.source.set_bandwidth(bandwidth, 0)
-
-        if output_file:
-            self.file_sink = blocks.file_sink(gr.sizeof_gr_complex, output_file, False)
-            self.file_sink.set_unbuffered(False)
-            self.connect((self.source, 0), (self.file_sink, 0))
-
-        if headless:
-            self.null_sink = blocks.null_sink(gr.sizeof_gr_complex)
-            self.connect((self.source, 0), (self.null_sink, 0))
-            return
 
         fft_size = 4096
 
@@ -117,17 +104,13 @@ def parse_args():
     parser.add_argument("--bb-gain", type=float, default=20, help="Ganancia baseband")
     parser.add_argument("--ppm", type=float, default=0, help="Corrección de frecuencia (ppm)")
     parser.add_argument("--hackrf-index", type=int, default=0, help="Índice del dispositivo HackRF")
-    parser.add_argument("--output", type=str, default="", help="Archivo de salida IQ complejo (.cfile)")
-    parser.add_argument("--headless", action="store_true", help="Sin GUI (solo captura en archivo)")
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
 
-    qapp = None
-    if not args.headless:
-        qapp = Qt.QApplication(sys.argv)
+    qapp = Qt.QApplication(sys.argv)
 
     tb = RFIDHackRFCapture(
         center_freq=args.freq,
@@ -138,8 +121,6 @@ def main():
         bb_gain=args.bb_gain,
         ppm=args.ppm,
         hackrf_index=args.hackrf_index,
-        output_file=args.output,
-        headless=args.headless,
     )
 
     def stop_handler(*_):
@@ -152,14 +133,10 @@ def main():
     signal.signal(signal.SIGTERM, stop_handler)
 
     tb.start()
-
-    if qapp is not None:
-        tb.show()
-        qapp.exec_()
-        tb.stop()
-        tb.wait()
-    else:
-        signal.pause()
+    tb.show()
+    qapp.exec_()
+    tb.stop()
+    tb.wait()
 
 
 if __name__ == "__main__":
